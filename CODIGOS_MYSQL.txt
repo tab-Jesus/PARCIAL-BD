@@ -1,0 +1,94 @@
+AQUI SE MUESTRAN TODOS LOS CODIGOS UTILIZADOS HASTA EL MOMENTO. 8/07/2025
+
+
+CREATE DATABASE concesionario;
+USE concesionario;
+
+
+CREATE TABLE usuario (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cc VARCHAR(20) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    ubicacion VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE vehiculo (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    marca VARCHAR(50) NOT NULL,
+    modelo VARCHAR(50) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    disponible BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE compra (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    usuario_id INT,
+    vehiculo_id INT,
+    fecha_compra DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+    FOREIGN KEY (vehiculo_id) REFERENCES vehiculo(id)
+);
+
+----------------------------------------------------------------------------------------------------------
+STORED PROCEDURES
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE registrar_compra (
+    IN p_usuario_id INT,
+    IN p_vehiculo_id INT
+)
+BEGIN
+    DECLARE disponible_actual BOOLEAN;
+
+    IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_usuario_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El usuario no existe';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM vehiculo WHERE id = p_vehiculo_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El vehículo no existe';
+    END IF;
+
+    SELECT disponible INTO disponible_actual
+    FROM vehiculo
+    WHERE id = p_vehiculo_id
+    FOR UPDATE;
+
+    IF disponible_actual = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El vehículo ya ha sido vendido';
+    END IF;
+
+    INSERT INTO compra (usuario_id, vehiculo_id)
+    VALUES (p_usuario_id, p_vehiculo_id);
+
+    UPDATE vehiculo
+    SET disponible = FALSE
+    WHERE id = p_vehiculo_id;
+END //
+
+DELIMITER ;
+
+
+------------------------------------------------------------------------------------------------------------------
+
+FUNCTIONS
+
+DELIMITER //
+CREATE FUNCTION vehiculos_disponibles()
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE total INT;
+    SELECT COUNT(*) INTO total
+    FROM vehiculo
+    WHERE disponible = TRUE;
+    RETURN total;
+END //
+DELIMITER ;
+
+
