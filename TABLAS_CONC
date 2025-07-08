@@ -32,3 +32,38 @@ CREATE TABLE compra (
     FOREIGN KEY (usuario_id) REFERENCES usuario(id),
     FOREIGN KEY (vehiculo_id) REFERENCES vehiculo(id)
 );
+
+CREATE TABLE marca (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE tipo_vehiculo (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+___________________________________________________
+
+cambios realizados
+
+ALTER TABLE vehiculo
+ADD COLUMN marca_id INT NOT NULL AFTER id,
+ADD COLUMN tipo_id INT NOT NULL AFTER marca_id;
+
+ALTER TABLE vehiculo
+DROP COLUMN marca;
+
+ALTER TABLE vehiculo
+ADD CONSTRAINT fk_marca
+FOREIGN KEY (marca_id) REFERENCES marca(id);
+
+ALTER TABLE vehiculo
+ADD CONSTRAINT fk_tipo_vehiculo
+FOREIGN KEY (tipo_id) REFERENCES tipo_vehiculo(id);
+
+
+
+
+
+
+
