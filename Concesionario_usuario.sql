@@ -1,6 +1,5 @@
-USE proyecto_db_mejorado;
+USE Parcial_bd_dilan;
 
--- Tabla de usuarios
 CREATE TABLE usuario (
     id INT PRIMARY KEY AUTO_INCREMENT,
     cc VARCHAR(20) NOT NULL UNIQUE,
