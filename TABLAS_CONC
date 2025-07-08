@@ -61,6 +61,144 @@ ALTER TABLE vehiculo
 ADD CONSTRAINT fk_tipo_vehiculo
 FOREIGN KEY (tipo_id) REFERENCES tipo_vehiculo(id);
 
+INSERT INTO marca (nombre) VALUES 
+('Toyota'),
+('Chevrolet'),
+('Ford'),
+('Hyundai');
+
+INSERT INTO tipo_vehiculo (nombre) VALUES 
+('Automóvil'),
+('Camioneta'),
+('SUV'),
+('Pickup');
+
+INSERT INTO vehiculo (marca_id, tipo_id, modelo, anio, color, transmision, precio, disponible) VALUES 
+(1, 1, 'Corolla', 2020, 'Blanco', 'automática', 85000.00, TRUE),
+(2, 2, 'Tracker', 2022, 'Gris', 'manual', 95000.00, TRUE),
+(3, 3, 'Escape', 2021, 'Negro', 'automática', 115000.00, TRUE),
+(4, 4, 'Santa Cruz', 2023, 'Azul', 'manual', 125000.00, TRUE);
+
+INSERT INTO usuario (cc, nombre_completo, correo, telefono, direccion, ciudad, tipo_usuario) VALUES
+('1001001001', 'Laura Martínez', 'laura.m@gmail.com', '3101234567', 'Calle 10 #45-78', 'Bogotá', 'cliente'),
+('1001001002', 'Carlos Rojas', 'carlos.r@hotmail.com', '3129876543', 'Carrera 30 #12-34', 'Medellín', 'cliente'),
+('1001001003', 'Valentina Gómez', 'valen.g@correo.com', '3134567890', 'Av. Las Palmas #20-60', 'Cali', 'cliente'),
+('1001001004', 'Andrés Rivera', 'andres.r@gmail.com', '3112345678', 'Cra. 50 #33-21', 'Barranquilla', 'admin');
+
+INSERT INTO compra (usuario_id, vehiculo_id, forma_pago, estado_compra) VALUES 
+(1, 1, 'tarjeta', 'confirmada'),
+(2, 2, 'efectivo', 'confirmada'),
+(3, 3, 'transferencia', 'pendiente'),
+(4, 4, 'tarjeta', 'confirmada');
+
+DELIMITER //
+
+CREATE PROCEDURE registrar_usuario (
+    IN p_cc VARCHAR(20),
+    IN p_nombre VARCHAR(100),
+    IN p_correo VARCHAR(100),
+    IN p_telefono VARCHAR(20),
+    IN p_direccion VARCHAR(150),
+    IN p_ciudad VARCHAR(50),
+    IN p_tipo_usuario ENUM('cliente', 'admin')
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM usuario WHERE cc = p_cc OR correo = p_correo) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El usuario ya está registrado con esa cédula o correo';
+    ELSE
+        INSERT INTO usuario (cc, nombre_completo, correo, telefono, direccion, ciudad, tipo_usuario)
+        VALUES (p_cc, p_nombre, p_correo, p_telefono, p_direccion, p_ciudad, p_tipo_usuario);
+    END IF;
+END //
+
+DELIMITER ;
+DELIMITER //
+
+CREATE PROCEDURE cancelar_compra (
+    IN p_compra_id INT
+)
+BEGIN
+    DECLARE v_vehiculo_id INT;
+
+    -- Verificar si existe la compra
+    IF NOT EXISTS (SELECT 1 FROM compra WHERE id = p_compra_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'La compra no existe';
+    END IF;
+
+    -- Obtener el ID del vehículo
+    SELECT vehiculo_id INTO v_vehiculo_id
+    FROM compra
+    WHERE id = p_compra_id;
+
+    -- Cambiar estado de la compra a cancelada
+    UPDATE compra
+    SET estado_compra = 'cancelada'
+    WHERE id = p_compra_id;
+
+    -- Marcar el vehículo como disponible nuevamente
+    UPDATE vehiculo
+    SET disponible = TRUE
+    WHERE id = v_vehiculo_id;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE FUNCTION total_vehiculos_vendidos()
+RETURNS INT
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE total INT;
+
+    SELECT COUNT(*) INTO total
+    FROM vehiculo
+    WHERE disponible = FALSE;
+
+    RETURN total;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE FUNCTION compras_por_usuario(p_usuario_id INT)
+RETURNS INT
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE total INT;
+
+    SELECT COUNT(*) INTO total
+    FROM compra
+    WHERE usuario_id = p_usuario_id;
+
+    RETURN total;
+END //
+
+DELIMITER ;
+CREATE VIEW vista_compras_detalladas AS
+SELECT 
+    c.id AS id_compra,
+    u.nombre_completo AS cliente,
+    v.modelo,
+    m.nombre AS marca,
+    t.nombre AS tipo,
+    c.forma_pago,
+    c.estado_compra,
+    c.fecha_compra
+FROM compra c
+JOIN usuario u ON c.usuario_id = u.id
+JOIN vehiculo v ON c.vehiculo_id = v.id
+JOIN marca m ON v.marca_id = m.id
+JOIN tipo_vehiculo t ON v.tipo_id = t.id;
+
+-- como ultimas el select para verificar los hechos insertados-- 
+
+SELECT * FROM vista_compras_detalladas;
 
 
 
