@@ -63,14 +63,24 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `registrar_compra`(
 BEGIN
     DECLARE disponible_actual BOOLEAN;
 
-  
+    IF NOT EXISTS (SELECT 1 FROM usuario WHERE id = p_usuario_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El usuario no existe';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM vehiculo WHERE id = p_vehiculo_id) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El vehículo no existe';
+    END IF;
+
     SELECT disponible INTO disponible_actual
     FROM vehiculo
-    WHERE id = p_vehiculo_id;
+    WHERE id = p_vehiculo_id
+    FOR UPDATE;
 
     IF disponible_actual = FALSE THEN
-        SIGNAL SQLSTATE '40000'
-        SET MESSAGE_TEXT = 'El vehículo ya ha sido vendido pri';
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El vehículo ya ha sido vendido';
     END IF;
 
     INSERT INTO compra (usuario_id, vehiculo_id)
@@ -95,4 +105,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-08  3:01:59
+-- Dump completed on 2025-07-08  3:12:26
